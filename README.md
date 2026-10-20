@@ -1,29 +1,45 @@
-DEVELOPER INSTRUCTIONS:
+ConnByte for [`libdns`](https://github.com/libdns/libdns)
 =======================
 
-This repo is a template for developers to use when creating new [libdns](https://github.com/libdns/libdns) provider implementations.
+[![Go Reference](https://pkg.go.dev/badge/test.svg)](https://pkg.go.dev/github.com/libdns/connbyte)
 
-Be sure to update:
+This package implements the [libdns interfaces](https://github.com/libdns/libdns) for [ConnByte](https://connbyte.com/), allowing you to manage DNS records with the [ConnByte DNS API](https://api.connbyte.com/).
 
-- The package name
-- The Go module name in go.mod
-- The latest `libdns/libdns` version in go.mod
-- All comments and documentation, including README below and godocs
-- License (must be compatible with Apache/MIT)
-- All "TODO:"s is in the code
-- All methods that currently do nothing
+## Authenticating
 
-**Please be sure to conform to the semantics described at the [libdns godoc](https://github.com/libdns/libdns).**
+Create an API token in your [ConnByte](https://connbyte.com/) account. The token needs access to the DNS zones you want to manage.
 
-_Remove this section from the readme before publishing._
+## Example
 
----
+```go
+package main
 
-\<PROVIDER NAME\> for [`libdns`](https://github.com/libdns/libdns)
-=======================
+import (
+	"context"
+	"fmt"
+	"os"
+	"time"
 
-[![Go Reference](https://pkg.go.dev/badge/test.svg)](https://pkg.go.dev/github.com/libdns/TODO:PROVIDER_NAME)
+	"github.com/libdns/connbyte"
+	"github.com/libdns/libdns"
+)
 
-This package implements the [libdns interfaces](https://github.com/libdns/libdns) for \<PROVIDER\>, allowing you to manage DNS records.
+func main() {
+	provider := &connbyte.Provider{APIToken: os.Getenv("CONNBYTE_TOKEN")}
 
-TODO: Show how to configure and use. Explain any caveats.
+	recs, err := provider.AppendRecords(context.Background(), "example.com.", []libdns.Record{
+		libdns.TXT{Name: "_acme-challenge", Text: "token", TTL: 2 * time.Minute},
+	})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(recs)
+}
+```
+
+## Notes
+
+- Supported record types: `A`, `AAAA`, `CNAME`, `MX`, `NS`, `SRV`, `TXT`.
+- TTLs are clamped to the API range of 60 to 86400 seconds. A TTL of 0 means 3600 seconds.
+- The API has no batch operations. `SetRecords` and `DeleteRecords` are not atomic.
+- `ListZones` is supported.
